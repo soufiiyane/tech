@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress
+  namespace: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      imagePullSecrets:
+      - name: dockerhub-credentials
+      containers:
+      - name: wordpress
+        image: soufiiyane/tmt-wordpress:latest
+        imagePullPolicy: Always
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: mysql.wordpress.svc.cluster.local:3306
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: mysql-database
+        - name: WORDPRESS_DB_USER
+          value: root
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-credentials
+              key: mysql-root-password
+        - name: WORDPRESS_TABLE_PREFIX
+          value: ax_
+        - name: SMTP_HOST
+          value: smtp.gmail.com
+        - name: SMTP_PORT
+          value: "587"
+        - name: SMTP_USER
+          valueFrom:
+            secretKeyRef:
+              name: smtp-credentials
+              key: smtp-username
+        - name: SMTP_PASS
+          valueFrom:
+            secretKeyRef:
+              name: smtp-credentials
+              key: smtp-password
+        - name: WORDPRESS_CONFIG_EXTRA
+          value: |
+            define( 'FORCE_SSL_ADMIN', true );
+            define( 'WPMS_ON', true );
+            define( 'WPMS_SMTP_AUTH', true );
+            define( 'WPMS_SMTP_AUTO_TLS', false );
+            define( 'WPMS_MAILER', 'smtp' );
+            define( 'WPMS_SMTP_HOST', getenv( 'SMTP_HOST' ) );
+            define( 'WPMS_SMTP_PORT', getenv( 'SMTP_PORT' ) );
+            define( 'WPMS_SMTP_USERNAME', getenv( 'SMTP_USER' ) );
+            define( 'WPMS_SMTP_PASSWORD', getenv( 'SMTP_PASS' ) );
+            define( 'WPMS_MAIL_FROM', getenv( 'SMTP_USER' ) );
+            define( 'WPMS_MAIL_FROM_FORCE', true );
+            define( 'WPMS_SMTP_ENCRYPTION', 'tls' );
+        - name: WORDPRESS_AUTH_KEY
+          value: "WPv,cxFv.4THhZwnNerhy]sO(=82w4_o?=TYaZ6wxJBcl${~qBk_S%K20z|>EIK^"
+        - name: WORDPRESS_SECURE_AUTH_KEY
+          value: "-m*/z!5(Kdvcl3P+! q[t?WUUC]i|LMh:gs8L>s[`~XL7~x)M^s%)V_ezxJ.zP;d"
+        - name: WORDPRESS_LOGGED_IN_KEY
+          value: "mv|#yP+-]$L#d-xT.fiBU>])p&>jqT@hn:ld>N(^}2rIi~K6@s`?v3S}<TS1D#q}"
+        - name: WORDPRESS_NONCE_KEY
+          value: "g,ev[V=nRO+q=N.J+[[PBvH+%N@nMiDu/|dLE4z8[#sf5Q7t+| }o220=@_wZrho"
+        - name: WORDPRESS_AUTH_SALT
+          value: "p^SU]=tSgt+[*gq: /q:;w5%B+=PC6VG(Xb]|*o+4PzY1qHZ^BM]D9)TbVp{4Pci"
+        - name: WORDPRESS_SECURE_AUTH_SALT
+          value: "M=>[]gMuS.=b{XrH5Q6>pvG5o%)<h%9Wrp94MI7gF5}s7iUV@54eYE6ry{h?Vf|W"
+        - name: WORDPRESS_LOGGED_IN_SALT
+          value: "QRROx/wu{[EX/g(vv-@oE.4[BNB7AQ+,X( 3Vwipl-s^B]X|KUvvw+AZi`)+sxhs"
+        - name: WORDPRESS_NONCE_SALT
+          value: "-i8^T+IyT,>YXRc`~`|y>G^|c3_R9]fvKP]r#i;N*k#$kWaRS^TDJaKO*L&{?D_5"
+        ports:
+        - containerPort: 80
+          name: http
+        volumeMounts:
+        - name: wordpress-uploads
+          mountPath: /var/www/html/wp-content/uploads
+      volumes:
+      - name: wordpress-uploads
+        persistentVolumeClaim:
+          claimName: wordpress-uploads
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress
+  namespace: wordpress
+spec:
+  selector:
+    app: wordpress
+  ports:
+  - port: 80
+    targetPort: http
