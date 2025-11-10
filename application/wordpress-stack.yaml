@@ -9,7 +9,7 @@ spec:
     server: https://kubernetes.default.svc
     namespace: wordpress
   source:
-    repoURL: https://github.com/soufiiyane/wordpress-tmt.git
+    repoURL: https://github.com/soufiiyane/tech.git
     targetRevision: main
     path: manifests/wordpress
     directory:
